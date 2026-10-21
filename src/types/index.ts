@@ -2,19 +2,19 @@ import type { Types } from "mongoose";
 
 // Base User Interface
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: "student" | "admin" | "instructor";
   isActive: boolean;
 }
 
-// User Document Type (stored in MongoDB)
+// User Document Type for MongoDB
 export type UserDoc = Omit<User, "id"> & {
-  password: string;
+  password?: string;
 };
 
-// Custom Resource Interface (e.g., Task)
+// Task Interface
 export interface Task {
   id: string;
   userId: string;
@@ -30,5 +30,5 @@ export type TaskDoc = Omit<Task, "id" | "userId"> & {
   userId: Types.ObjectId;
 };
 
-// Type for incoming POST payload
+// Request Body for Creating Tasks
 export type NewTaskBody = Pick<Task, "title" | "category" | "priority">;

@@ -5,31 +5,51 @@ import express, {
 } from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import { connectDB } from "./config/db";
 import { authRouter } from "./routes/auth";
-import { taskRouter } from "./routes/tasks"; // 👈 Imports taskRouter
+import { taskRouter } from "./routes/tasks";
+import courseRoutes from "./routes/courseRoutes";
 
-export const app = express();
+const app = express();
 
-app.use(cors());
+// Enable CORS for local dev and frontend deployment
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "*",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// Health Check Route
+// 1. Auto-connect to MongoDB BEFORE processing any API routes
+app.use(async (_req: Request, _res: Response, next: NextFunction) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 2. Health Check Route
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ ok: true, db: mongoose.connection.readyState === 1 });
 });
 
-// Mount Routers
+// 3. Mount Routers
+app.use("/api/courses", courseRoutes);
 app.use("/api/auth", authRouter);
 app.use("/api/tasks", taskRouter);
 
-// 404 Handler
+// 4. 404 Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
-    message: `No route for ${req.method}${req.originalUrl}`,
+    message: `No route found for ${req.method} ${req.originalUrl}`,
   });
 });
 
-// Central Error Handling Middleware
+// 5. Central Error Handling Middleware
 app.use(
   (err: Error, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof mongoose.Error.ValidationError) {
@@ -42,12 +62,15 @@ app.use(
 
     if (err instanceof mongoose.Error.CastError) {
       res.status(400).json({
-        message: `"${err.value}" is not a valid id`,
+        message: `"${err.value}" is not a valid ID`,
       });
       return;
     }
 
-    console.error(err);
-    res.status(500).json({ message: "Something went wrong" });
+    console.error("Server Error:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 );
+
+// Clean single default export for Vercel
+export default app;
