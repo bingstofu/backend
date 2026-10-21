@@ -8,9 +8,9 @@ import mongoose from "mongoose";
 import { connectDB } from "./config/db";
 import { authRouter } from "./routes/auth";
 import { taskRouter } from "./routes/tasks";
-import courseRoutes from './routes/courseRoutes';
+import courseRoutes from "./routes/courseRoutes";
 
-export const app = express();
+const app = express();
 
 // Enable CORS for local dev and frontend deployment
 app.use(
@@ -22,10 +22,7 @@ app.use(
 
 app.use(express.json());
 
-app.use('/api/courses', courseRoutes);
-
-
-// Auto-connect to MongoDB on every serverless request
+// 1. Auto-connect to MongoDB BEFORE processing any API routes
 app.use(async (_req: Request, _res: Response, next: NextFunction) => {
   try {
     await connectDB();
@@ -35,23 +32,24 @@ app.use(async (_req: Request, _res: Response, next: NextFunction) => {
   }
 });
 
-// Health Check Route
+// 2. Health Check Route
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ ok: true, db: mongoose.connection.readyState === 1 });
 });
 
-// Mount Routers
+// 3. Mount Routers
+app.use("/api/courses", courseRoutes);
 app.use("/api/auth", authRouter);
 app.use("/api/tasks", taskRouter);
 
-// 404 Handler
+// 4. 404 Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     message: `No route found for ${req.method} ${req.originalUrl}`,
   });
 });
 
-// Central Error Handling Middleware
+// 5. Central Error Handling Middleware
 app.use(
   (err: Error, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof mongoose.Error.ValidationError) {
@@ -74,4 +72,5 @@ app.use(
   }
 );
 
+// Clean single default export for Vercel
 export default app;
