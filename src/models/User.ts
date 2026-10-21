@@ -1,6 +1,6 @@
 import { Schema, model } from "mongoose";
 import bcrypt from "bcryptjs";
-import type { UserDoc } from "../types/index.js";
+import type { UserDoc } from "../types";
 
 const userSchema = new Schema<UserDoc>(
   {
@@ -25,11 +25,11 @@ const userSchema = new Schema<UserDoc>(
 
 // Hash password before saving
 userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
+  if (!this.isModified("password") || !this.password) return;
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-// JSON Transformation: convert _id to id and remove hidden properties
+// Convert _id to id and remove private fields when serialized
 userSchema.set("toJSON", {
   transform(_doc, ret: Record<string, unknown>) {
     ret.id = String(ret._id);

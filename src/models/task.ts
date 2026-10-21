@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import type { TaskDoc } from "../types/index.js";
+import type { TaskDoc } from "../types";
 
 const taskSchema = new Schema<TaskDoc>(
   {
@@ -8,13 +8,11 @@ const taskSchema = new Schema<TaskDoc>(
       ref: "User",
       required: true,
     },
-    // Rule 1: Required
     title: {
       type: String,
       required: [true, "Title is required"],
       trim: true,
     },
-    // Rule 2: Enum / Match
     category: {
       type: String,
       required: [true, "Category is required"],
@@ -23,7 +21,6 @@ const taskSchema = new Schema<TaskDoc>(
         message: "Category must be work, personal, or study",
       },
     },
-    // Rule 3: Min / Max numerical range
     priority: {
       type: Number,
       required: [true, "Priority is required"],

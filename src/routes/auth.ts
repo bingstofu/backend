@@ -1,54 +1,98 @@
-import { Router, type Request, type Response } from "express";
-import jwt from "jsonwebtoken";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import bcrypt from "bcryptjs";
-import { User } from "../models/User.js";
-import type { TokenPayload } from "../middleware/auth.js";
+import jwt from "jsonwebtoken";
+import { User } from "../models/User";
+import { requireAuth } from "../middleware/auth";
 
 export const authRouter = Router();
 
-interface RegisterBody {
-  name: string;
-  email: string;
-  password: string;
-}
+// REGISTER ROUTE
+authRouter.post("/register", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, email, password, role } = req.body;
 
-interface LoginBody {
-  email: string;
-  password: string;
-}
-
-authRouter.post(
-  "/register",
-  async (req: Request<unknown, unknown, RegisterBody>, res: Response) => {
-    const { name, email, password } = req.body;
-
-    if (await User.findOne({ email })) {
-      res.status(409).json({ message: "That email is already registered" });
+    if (!name || !email || !password) {
+      res.status(400).json({ message: "Name, email, and password are required" });
       return;
     }
 
-    const user = await User.create({ name, email, password });
-    res.status(201).json(user.toJSON());
-  }
-);
-
-authRouter.post(
-  "/login",
-  async (req: Request<unknown, unknown, LoginBody>, res: Response) => {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email }).select("+password");
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      res.status(401).json({ message: "Email or password is incorrect" });
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      res.status(400).json({ message: "User with this email already exists" });
       return;
     }
 
-    const payload: TokenPayload = { userId: String(user._id) };
-    const token = jwt.sign(payload, process.env.JWT_SECRET!, {
-      expiresIn: "2h",
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: role || "student",
     });
 
-    res.json({ token, user: user.toJSON() });
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET || "fallback_secret_change_me",
+      { expiresIn: "7d" }
+    );
+
+    res.status(201).json({
+      token,
+      user,
+    });
+  } catch (err) {
+    next(err);
   }
-);
+});
+
+// LOGIN ROUTE
+authRouter.post("/login", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400).json({ message: "Email and password are required" });
+      return;
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
+    if (!user) {
+      res.status(401).json({ message: "Invalid email or password" });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password || "");
+    if (!isMatch) {
+      res.status(401).json({ message: "Invalid email or password" });
+      return;
+    }
+
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET || "fallback_secret_change_me",
+      { expiresIn: "7d" }
+    );
+
+    const userObj = user.toJSON();
+
+    res.json({
+      token,
+      user: userObj,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET CURRENT USER PROFILE
+authRouter.get("/me", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
