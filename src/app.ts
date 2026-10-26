@@ -41,6 +41,8 @@ app.get("/api/health", (_req: Request, res: Response) => {
 app.use("/api/courses", courseRoutes);
 app.use("/api/auth", authRouter);
 app.use("/api/tasks", taskRouter);
+app.use("/api/submissions", taskRouter); // <-- ADD THIS: handles /api/submissions requests using taskRouter!
+app.use("/api/ai", aiRouter);
 
 // 4. 404 Handler
 app.use((req: Request, res: Response) => {
@@ -72,7 +74,6 @@ app.use(
   }
 );
 
-app.use("/api/ai", aiRouter);
 
 // Clean single default export for Vercel
 export default app;

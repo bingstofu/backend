@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import dns from "node:dns";
+
+// Bypass local router DNS for Node.js
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 let isConnected = false;
 
