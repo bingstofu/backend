@@ -9,7 +9,7 @@ import { connectDB } from "./config/db";
 import { authRouter } from "./routes/auth";
 import { taskRouter } from "./routes/tasks";
 import courseRoutes from "./routes/courseRoutes";
-
+import { aiRouter } from "./routes/ai";
 const app = express();
 
 // Enable CORS for local dev and frontend deployment
@@ -71,6 +71,8 @@ app.use(
     res.status(500).json({ message: "Internal server error" });
   }
 );
+
+app.use("/api/ai", aiRouter);
 
 // Clean single default export for Vercel
 export default app;
