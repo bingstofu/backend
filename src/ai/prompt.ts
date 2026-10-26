@@ -1,6 +1,6 @@
 import type { Review } from "../schemas/review";
 
-export const MODEL = "gemini-flash-latest";
+export const MODEL = "gemini-flash-lite-latest";
 
 export const SYSTEM_PROMPT = `
 You review project descriptions for ITELECT4, a web development course at De La Salle Lipa. A student describes a project they are about to submit. You never see the code, only their description.
